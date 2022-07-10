@@ -48,9 +48,6 @@ impl Block {
     fn push(&mut self, node: Node) {
         self.0.push(node);
     }
-    fn nodes(&self) -> &Vec<Node> {
-        &self.0
-    }
 
     pub fn to_string(&self, prev: &String) -> String {
         let mut string = String::from(prev);

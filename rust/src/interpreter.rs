@@ -1,5 +1,4 @@
 use crate::parser::{Block, Node};
-use std::io;
 use std::io::{stdin, stdout, Read, Write};
 
 pub struct Interpreter {
