@@ -17,13 +17,13 @@ impl Interpreter {
     pub fn run(&mut self, block: &Block) {
         for node in &block.0 {
             match node {
-                Node::IncrementDP => self.pointer += 1,
-                Node::DecrementDP => self.pointer -= 1,
-                Node::Increment => {
-                    self.memory[self.pointer] = self.memory[self.pointer].wrapping_add(1)
+                Node::IncrementDP(x) => self.pointer += *x as usize,
+                Node::DecrementDP(x) => self.pointer -= *x as usize,
+                Node::Increment(x) => {
+                    self.memory[self.pointer] = self.memory[self.pointer].wrapping_add(*x)
                 }
-                Node::Decrement => {
-                    self.memory[self.pointer] = self.memory[self.pointer].wrapping_sub(1)
+                Node::Decrement(x) => {
+                    self.memory[self.pointer] = self.memory[self.pointer].wrapping_sub(*x)
                 }
                 Node::Output => {
                     print!("{}", self.memory[self.pointer] as char);
