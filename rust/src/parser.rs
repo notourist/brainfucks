@@ -3,7 +3,7 @@ use crate::lexer::Token;
 pub struct Parser {
     tokens: Vec<Token>,
     index: usize,
-    current_node: Option<Node>,
+    current_node: Option<IR>,
 }
 
 impl Parser {
@@ -19,71 +19,68 @@ impl Parser {
             match self.tokens[i] {
                 Token::GreaterThan => {
                     match &self.current_node {
-                        None => self.current_node = Some(Node::IncrementDP(1)),
+                        None => self.current_node = Some(IR::IncrementDP(1)),
                         Some(prev) => {
-                            if let Node::IncrementDP(x) = prev {
-                                self.current_node = Some(Node::IncrementDP(x + 1))
+                            if let IR::IncrementDP(x) = prev {
+                                self.current_node = Some(IR::IncrementDP(x + 1))
                             } else {
                                 block.push(prev.clone());
-                                self.current_node = Some(Node::IncrementDP(1))
+                                self.current_node = Some(IR::IncrementDP(1))
                             }
                         }
                     }
                 }
                 Token::SmallerThan => {
                     match &self.current_node {
-                        None => self.current_node = Some(Node::DecrementDP(1)),
+                        None => self.current_node = Some(IR::DecrementDP(1)),
                         Some(prev) => {
-                            if let Node::DecrementDP(x) = prev {
-                                self.current_node = Some(Node::DecrementDP(x + 1))
+                            if let IR::DecrementDP(x) = prev {
+                                self.current_node = Some(IR::DecrementDP(x + 1))
                             } else {
                                 block.push(prev.clone());
-                                self.current_node = Some(Node::DecrementDP(1))
+                                self.current_node = Some(IR::DecrementDP(1))
                             }
                         }
                     }
                 }
                 Token::Plus =>
                     match &self.current_node {
-                        None => self.current_node = Some(Node::Increment(1)),
+                        None => self.current_node = Some(IR::Increment(1)),
                         Some(prev) => {
-                            if let Node::Increment(x) = prev {
-                                self.current_node = Some(Node::Increment(x + 1))
+                            if let IR::Increment(x) = prev {
+                                self.current_node = Some(IR::Increment(x + 1))
                             } else {
                                 block.push(prev.clone());
-                                self.current_node = Some(Node::Increment(1))
+                                self.current_node = Some(IR::Increment(1))
                             }
                         }
                     }
                 Token::Minus => {
                     match &self.current_node {
-                        None => self.current_node = Some(Node::Decrement(1)),
+                        None => self.current_node = Some(IR::Decrement(1)),
                         Some(prev) => {
-                            if let Node::Decrement(x) = prev {
-                                self.current_node = Some(Node::Decrement(x + 1))
+                            if let IR::Decrement(x) = prev {
+                                self.current_node = Some(IR::Decrement(x + 1))
                             } else {
                                 block.push(prev.clone());
-                                self.current_node = Some(Node::Decrement(1))
+                                self.current_node = Some(IR::Decrement(1))
                             }
                         }
                     }
                 }
                 Token::Point => {
                     self.push_current_node(&mut block);
-                    block.push(Node::Output)
+                    block.push(IR::Output)
                 }
                 Token::Comma => {
                     self.push_current_node(&mut block);
-                    block.push(Node::Input);
+                    block.push(IR::Input);
                 }
                 Token::BracketOpen => {
-                    if let Some(node) = &self.current_node {
-                        block.push(node.clone());
-                        self.current_node = None;
-                    }
+                    self.push_current_node(&mut block);
                     let while_block = self.parse()?;
                     //self.current_node = None;
-                    block.push(Node::While(while_block));
+                    block.push(IR::While(while_block));
                     // hacky time, "fix" i after index was incremented in a recursive function call
                     // i needs to be decreased by one, as the recursive call will set self.index
                     // one character to far.
@@ -108,14 +105,14 @@ impl Parser {
 }
 
 #[derive(Clone)]
-pub struct Block(pub Vec<Node>);
+pub struct Block(pub Vec<IR>);
 
 impl Block {
     fn new() -> Block {
         Block(Vec::new())
     }
 
-    fn push(&mut self, node: Node) {
+    fn push(&mut self, node: IR) {
         self.0.push(node);
     }
 
@@ -123,17 +120,17 @@ impl Block {
         let mut string = String::from(prev);
         for node in &self.0 {
             match node {
-                Node::IncrementDP(x) => string += &">".repeat(*x as usize),
-                Node::DecrementDP(x) => string += &"<".repeat(*x as usize),
-                Node::Increment(x) => string += &"+".repeat(*x as usize),
-                Node::Decrement(x) => string += &"-".repeat(*x as usize),
-                Node::Output => string += ".",
-                Node::Input => string += ",",
-                Node::While(while_block) => {
+                IR::IncrementDP(x) => string += &">".repeat(*x as usize),
+                IR::DecrementDP(x) => string += &"<".repeat(*x as usize),
+                IR::Increment(x) => string += &"+".repeat(*x as usize),
+                IR::Decrement(x) => string += &"-".repeat(*x as usize),
+                IR::Output => string += ".",
+                IR::Input => string += ",",
+                /*IR::While(while_block) => {
                     string += "[";
                     string += &while_block.to_string(&String::new());
                     string += "]";
-                }
+                },*/
             }
         }
         string
@@ -141,12 +138,13 @@ impl Block {
 }
 
 #[derive(Clone)]
-pub enum Node {
+pub enum IR {
     IncrementDP(u8),
     DecrementDP(u8),
     Increment(u8),
     Decrement(u8),
     Output,
     Input,
-    While(Block),
+    JumpZero(usize),
+    JumpNonZero(usize),
 }
